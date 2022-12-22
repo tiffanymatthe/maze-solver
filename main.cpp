@@ -6,4 +6,6 @@ int main() {
     cout << "Hello world" << endl;
     Maze maze = Maze();
     maze.display_maze();
+    maze.solveMazeDFS();
+    maze.display_maze();
 }

@@ -41,17 +41,17 @@ bool Maze::is_row_col_ok(int row, int col) {
     return row >= 0 && row < height && col >= 0 && col < width;
 }
 
-bool Maze::get_cell(int row, int col) {
+Maze::GridValue Maze::get_cell(int row, int col) {
     assert_row_col(row, col);
     return grid[get_raw_index(width) * get_raw_index(row) + get_raw_index(col)];
 }
 
-void Maze::set_cell(int row, int col, bool value) {
+void Maze::set_cell(int row, int col, GridValue value) {
     assert_row_col(row, col);
     grid[get_raw_index(width) * get_raw_index(row) + get_raw_index(col)] = value;
 }
 
-void Maze::set_wall_value(int row, int col, std::vector<Side> walls, bool value) {
+void Maze::set_wall_value(int row, int col, std::vector<Side> walls, GridValue value) {
     assert_row_col(row, col);
     int cell_index = get_raw_index(width) * get_raw_index(row) + get_raw_index(col);
     for (auto wall : walls) {
@@ -74,15 +74,36 @@ void Maze::set_wall_value(int row, int col, std::vector<Side> walls, bool value)
     }
 }
 
+
+Maze::GridValue Maze::get_wall_value(int row, int col, Side wall) {
+    assert_row_col(row, col);
+    switch(wall) {
+        case Side::TOP:
+            return get_raw(get_raw_index(row) - 1, get_raw_index(col));
+            break;
+        case Side::BOTTOM:
+            return get_raw(get_raw_index(row) + 1, get_raw_index(col));
+            break;
+        case Side::LEFT:
+             return get_raw(get_raw_index(row), get_raw_index(col) - 1);
+            break;
+        case Side::RIGHT:
+             return get_raw(get_raw_index(row), get_raw_index(col) + 1);
+            break;
+        default:
+            throw;
+    }
+}
+
 void Maze::build_wall(int row, int col, std::vector<Side> walls) {
-    set_wall_value(row, col, walls, true);
+    set_wall_value(row, col, walls, GridValue::WALL);
 }
 
 void Maze::remove_wall(int row, int col, std::vector<Side> walls) {
-    set_wall_value(row, col, walls, false);
+    set_wall_value(row, col, walls, GridValue::EMPTY);
 }
 
-bool Maze::get_raw(int y, int x) {
+Maze::GridValue Maze::get_raw(int y, int x) {
     assert(y >= 0);
     assert(y < get_raw_index(height));
     assert(x >= 0);
@@ -91,7 +112,7 @@ bool Maze::get_raw(int y, int x) {
     return grid[get_raw_index(width) * y + x];
 }
 
-void Maze::set_raw(int y, int x, bool value) {
+void Maze::set_raw(int y, int x, GridValue value) {
     assert(y >= 0);
     assert(y < get_raw_index(height));
     assert(x >= 0);
@@ -100,7 +121,7 @@ void Maze::set_raw(int y, int x, bool value) {
     grid[get_raw_index(width) * y + x] = value;
 }
 
-void Maze::set_grid_index_if_valid(int index, bool value) {
+void Maze::set_grid_index_if_valid(int index, GridValue value) {
     if (index < 0 || index >= get_raw_index(width) * get_raw_index(height)) {
         return;
     }
@@ -122,13 +143,13 @@ void Maze::fill_borders() {
 
     for (auto y : ys_to_set) {
         for (int x = 0; x < get_raw_index(width); ++x) {
-            set_raw(y,x,true);
+            set_raw(y,x,GridValue::WALL);
         }
     }
 
     for (auto x : xs_to_set) {
         for (int y = 0; y < get_raw_index(height); ++y) {
-            set_raw(y,x,true);
+            set_raw(y,x,GridValue::WALL);
         }
     }
 }
@@ -271,8 +292,8 @@ void Maze::create_maze_randomized_dfs() {
         history.push(current_cell);
     }
 
-    set_raw(0,1,false);
-    set_raw(get_raw_index(height) - 2, get_raw_index(width) - 1, false);
+    start_location = make_pair(0,0);
+    end_location = make_pair(height - 1, width - 1);
 }
 
 int Maze::get_raw_index(int s) {
@@ -281,7 +302,6 @@ int Maze::get_raw_index(int s) {
 
 void Maze::initialize_random_maze() {
     fill_borders();
-    // set_random_entry_and_exit_points();
     create_maze_randomized_dfs();
 }
 
@@ -289,10 +309,14 @@ void Maze::display_maze() {
     cout << "Displaying maze of height : " << height << " and width : " << width << endl;
     for (int row = 0; row < get_raw_index(height); ++row) {
         for (int col = 0; col < get_raw_index(width); ++col) {
-            if (get_raw(row, col)) {
+            if (get_raw(row, col) == GridValue::WALL) {
                 cout << "\u25A0";
-            } else {
+            } else if (get_raw(row, col) == GridValue::PATH) {
+                cout << "x";
+            } else if (get_raw(row, col) == GridValue::EMPTY) {
                 cout << " ";
+            } else {
+                throw;
             }
         }
         cout << endl;
@@ -304,8 +328,97 @@ Maze::Maze() : Maze(DEFAULT_SIZE, DEFAULT_SIZE) {}
 Maze::Maze(int w, int h) : width(w), height(h) {
     srand(time(NULL));
     cout << "Initializing maze with height: " << height << " and width: " << width << endl;
-    grid = make_unique<bool[]>(get_raw_index(width) * get_raw_index(height));
-    fill(grid.get(), grid.get() + get_raw_index(width) * get_raw_index(height), false);
-    display_maze();
+    grid = make_unique<GridValue[]>(get_raw_index(width) * get_raw_index(height));
+    fill(grid.get(), grid.get() + get_raw_index(width) * get_raw_index(height), GridValue::EMPTY);
     initialize_random_maze();
+}
+
+Maze::Side Maze::get_wall_between_cells(pair<int,int> cell1, pair<int,int> cell2) {
+    pair<int,int> diff = make_pair(cell2.first - cell1.first, cell2.second - cell1.second);
+
+    if (diff.first == 0) {
+        // then left or right
+        switch (diff.second) {
+            case -1:
+                return Side::LEFT;
+            case 1:
+                return Side::RIGHT;
+            default:
+                throw;
+        }
+    } else if (diff.second == 0) {
+        // then left or right
+        switch (diff.first) {
+            case -1:
+                return Side::TOP;
+            case 1:
+                return Side::BOTTOM;
+            default:
+                throw;
+        }
+    } else {
+        throw;
+    }
+}
+
+void Maze::solveMazeDFS() {
+    // from start index, dfs, keeping history. if you have to backtrack, pop from history
+    // final result is what is in history
+
+    stack<pair<int,int>> s;
+    stack<pair<int,int>> history;
+    vector<vector<bool>> visited(height, vector<bool>(width, false));
+
+    map<Side, string> side_to_str_mapping{
+        {Side::TOP, "top"},
+        {Side::BOTTOM, "bottom"},
+        {Side::LEFT, "left"},
+        {Side::RIGHT, "right"}
+    };
+
+    s.push(start_location);
+    
+    while (!s.empty()) {
+        pair<int,int> curr_cell = s.top();
+        s.pop();
+
+        if (visited[curr_cell.first][curr_cell.second]) {
+            continue;
+        }
+
+        vector<pair<int,int>> neighbors = get_neighbors(curr_cell.first, curr_cell.second);
+
+        int num_added = 0;
+        
+        for (auto neighbor : neighbors) {
+            if (visited[neighbor.first][neighbor.second]) {
+                continue;
+            }
+            Side wall = get_wall_between_cells(curr_cell, neighbor);
+            GridValue wall_value = get_wall_value(curr_cell.first, curr_cell.second, wall);
+
+            if (wall_value == GridValue::EMPTY) { // if wall is down
+                s.push(neighbor);
+                num_added++;
+            }
+        }
+
+        visited[curr_cell.first][curr_cell.second] = true;
+
+        if (num_added == 0) { // no progress, need to retract by one
+            s.push(history.top());
+            history.pop();
+        } else {
+            history.push(curr_cell);
+        }
+    }
+
+    // add history cells to grid
+    cout << "Len of history " << history.size() << endl;
+
+    while (!history.empty()) {
+        pair<int,int> path_cell = history.top();
+        history.pop();
+        set_cell(path_cell.first, path_cell.second, GridValue::PATH);
+    }
 }

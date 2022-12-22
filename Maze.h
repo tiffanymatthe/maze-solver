@@ -4,12 +4,14 @@
 #include <memory>
 
 class Maze {
+    enum class Side { TOP, LEFT, BOTTOM, RIGHT };
+    enum class GridValue {EMPTY, PATH, WALL};
     int height;
     int width;
     std::pair<int,int> start_location;
     std::pair<int,int> end_location;
-    std::unique_ptr<bool[]> grid;
-    enum class Side { TOP, LEFT, BOTTOM, RIGHT };
+    std::unique_ptr<GridValue[]> grid;
+    
 
     /*
     * Asserts that row and col inputs are valid for a cell coordinate.
@@ -22,7 +24,7 @@ class Maze {
     * @param col col value
     * @return true or false value at specified row and col.
     */
-    bool get_cell(int row, int col);
+    GridValue get_cell(int row, int col);
 
     /*
     * Sets the value of the Maze at the specified coordinate.
@@ -30,7 +32,7 @@ class Maze {
     * @param col col value
     * @param value true or false value to set at the specified row + col.
     */
-    void set_cell(int row, int col, bool value);
+    void set_cell(int row, int col, GridValue value);
 
     /*
     * Builds walls around a cell coordinate based on inputted vector of sides.
@@ -51,18 +53,24 @@ class Maze {
     void remove_wall(int row, int col, std::vector<Side> walls);
 
     // set value of walls for specified cell
-    void set_wall_value(int row, int col, std::vector<Side> walls, bool value);
+    void set_wall_value(int row, int col, std::vector<Side> walls, GridValue value);
+
+    // get value of wall
+    GridValue get_wall_value(int row, int col, Side wall);
+
+    // returns type wall between the two cells, returns Side wrt to cell1
+    Side get_wall_between_cells(std::pair<int,int> cell1, std::pair<int,int> cell2);
 
     /*
     * Sets value at grid index if valid. Does not throw error if index is invalid.
     */
-    void set_grid_index_if_valid(int index, bool value);
+    void set_grid_index_if_valid(int index, GridValue value);
 
     // get value at grid with raw coordinates
-    bool get_raw(int y, int x);
+    GridValue get_raw(int y, int x);
 
     // set value at grid with raw coordinates
-    void set_raw(int y, int x, bool value);
+    void set_raw(int y, int x, GridValue value);
 
     // get cell coordinates of neighbors of current cell
     std::vector<std::pair<int,int>> get_neighbors(int row, int col);
@@ -114,6 +122,9 @@ public:
     @param heigh height of maze grid
     */
     Maze(int width, int height);
+
+    // solves maze using DFS method and updates grid with its path
+    void solveMazeDFS();
 };
 
 extern const int DEFAULT_SIZE;
