@@ -312,7 +312,7 @@ void Maze::display_maze() {
             if (get_raw(row, col) == GridValue::WALL) {
                 cout << "\u25A0";
             } else if (get_raw(row, col) == GridValue::PATH) {
-                cout << "x";
+                cout << "\033[1;31m\u25A0\033[0m";
             } else if (get_raw(row, col) == GridValue::EMPTY) {
                 cout << " ";
             } else {
@@ -344,6 +344,7 @@ Maze::Side Maze::get_wall_between_cells(pair<int,int> cell1, pair<int,int> cell2
             case 1:
                 return Side::RIGHT;
             default:
+                cout << "Cells are not adjacent! Diff in cols is " << diff.second << endl; 
                 throw;
         }
     } else if (diff.second == 0) {
@@ -354,11 +355,45 @@ Maze::Side Maze::get_wall_between_cells(pair<int,int> cell1, pair<int,int> cell2
             case 1:
                 return Side::BOTTOM;
             default:
+                cout << "Cells are not adjacent! Diff in rows is " << diff.first << endl; 
                 throw;
         }
     } else {
+        cout << "Cells are not adjacent. Diff if rows is " << diff.first << " and for cols " << diff.second << endl;
         throw;
     }
+}
+
+void Maze::set_wall_between_cells(pair<int,int> cell1, pair<int,int> cell2, GridValue value) {
+    pair<int,int> raw1 = make_pair(get_raw_index(cell1.first), get_raw_index(cell1.second));
+    pair<int,int> wall_raw = raw1;
+
+    cout << "getting wall between cells" << endl;
+    cout << "Cell1:" << cell1.first << ", " << cell1.second << " and Cell2: " << cell2.first << ", " << cell2.second << endl;
+
+    
+    Side side = get_wall_between_cells(cell1, cell2);
+    
+    switch(side) {
+        case Side::TOP:
+            wall_raw.first -= 1;
+            break;
+        case Side::BOTTOM:
+            wall_raw.first += 1;
+            break;
+        case Side::LEFT:
+            wall_raw.second -= 1;
+            break;
+        case Side::RIGHT:
+            wall_raw.second += 1;
+            break;
+        default:
+            throw;
+    }
+
+    cout << "wall y: " << wall_raw.first << " wall x: " << wall_raw.second << endl;
+
+    set_raw(wall_raw.first, wall_raw.second, value);
 }
 
 void Maze::solveMazeDFS() {
@@ -366,7 +401,7 @@ void Maze::solveMazeDFS() {
     // final result is what is in history
 
     stack<pair<int,int>> s;
-    stack<pair<int,int>> history;
+    map<pair<int,int>, pair<int,int>> history; // key = cell, value = parent cell to get to key
     vector<vector<bool>> visited(height, vector<bool>(width, false));
 
     map<Side, string> side_to_str_mapping{
@@ -400,25 +435,32 @@ void Maze::solveMazeDFS() {
             if (wall_value == GridValue::EMPTY) { // if wall is down
                 s.push(neighbor);
                 num_added++;
+                history[neighbor] = curr_cell;
             }
         }
 
         visited[curr_cell.first][curr_cell.second] = true;
-
-        if (num_added == 0) { // no progress, need to retract by one
-            s.push(history.top());
-            history.pop();
-        } else {
-            history.push(curr_cell);
-        }
     }
 
     // add history cells to grid
+    // also add path to no wall locations
     cout << "Len of history " << history.size() << endl;
+    pair<int,int> prev{-1,-1};
 
-    while (!history.empty()) {
-        pair<int,int> path_cell = history.top();
-        history.pop();
-        set_cell(path_cell.first, path_cell.second, GridValue::PATH);
+    pair<int,int> path = end_location;
+
+    cout << "End location " << path.first << ":" << path.second << endl;
+    cout << "Parent of end location " << history[path].first << ":" << history[path].second << endl;
+
+    while (prev != start_location) {
+        cout << "Current cell " << path.first << ":" << path.second << endl;
+        set_cell(path.first, path.second, GridValue::PATH);
+
+        if (prev.first != -1) {
+            set_wall_between_cells(path, prev, GridValue::PATH);
+        }
+
+        prev = path;
+        path = history[path];
     }
 }

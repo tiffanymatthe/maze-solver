@@ -61,6 +61,8 @@ class Maze {
     // returns type wall between the two cells, returns Side wrt to cell1
     Side get_wall_between_cells(std::pair<int,int> cell1, std::pair<int,int> cell2);
 
+    void set_wall_between_cells(std::pair<int,int> cell1, std::pair<int,int> cell2, GridValue value);
+
     /*
     * Sets value at grid index if valid. Does not throw error if index is invalid.
     */
