@@ -367,10 +367,6 @@ Maze::Side Maze::get_wall_between_cells(pair<int,int> cell1, pair<int,int> cell2
 void Maze::set_wall_between_cells(pair<int,int> cell1, pair<int,int> cell2, GridValue value) {
     pair<int,int> raw1 = make_pair(get_raw_index(cell1.first), get_raw_index(cell1.second));
     pair<int,int> wall_raw = raw1;
-
-    cout << "getting wall between cells" << endl;
-    cout << "Cell1:" << cell1.first << ", " << cell1.second << " and Cell2: " << cell2.first << ", " << cell2.second << endl;
-
     
     Side side = get_wall_between_cells(cell1, cell2);
     
@@ -390,8 +386,6 @@ void Maze::set_wall_between_cells(pair<int,int> cell1, pair<int,int> cell2, Grid
         default:
             throw;
     }
-
-    cout << "wall y: " << wall_raw.first << " wall x: " << wall_raw.second << endl;
 
     set_raw(wall_raw.first, wall_raw.second, value);
 }
@@ -449,11 +443,7 @@ void Maze::solveMazeDFS() {
 
     pair<int,int> path = end_location;
 
-    cout << "End location " << path.first << ":" << path.second << endl;
-    cout << "Parent of end location " << history[path].first << ":" << history[path].second << endl;
-
     while (prev != start_location) {
-        cout << "Current cell " << path.first << ":" << path.second << endl;
         set_cell(path.first, path.second, GridValue::PATH);
 
         if (prev.first != -1) {
