@@ -5,6 +5,7 @@
 #include <map>
 #include <assert.h>
 #include <time.h>
+#include <ncurses.h>
 
 /**
  *  0 1
@@ -306,21 +307,38 @@ void Maze::initialize_random_maze() {
 }
 
 void Maze::display_maze() {
-    cout << "Displaying maze of height : " << height << " and width : " << width << endl;
+
+    cout << "Displaying maze with ncurses of height : " << height << " and width : " << width << endl;
+    initscr();
+    move(0,0);
+    printw("Displaying maze with ncurses.\n");	/* Print Hello World		  */
+    refresh();
+    noecho();
+    cbreak();
+    start_color();
+    init_pair(1, COLOR_RED, COLOR_BLUE);
     for (int row = 0; row < get_raw_index(height); ++row) {
         for (int col = 0; col < get_raw_index(width); ++col) {
             if (get_raw(row, col) == GridValue::WALL) {
-                cout << "\u25A0";
+                addch(ACS_BLOCK);
+                // cout << "\u25A0";
             } else if (get_raw(row, col) == GridValue::PATH) {
-                cout << "\033[1;31m\u25A0\033[0m";
+                addch(ACS_BLOCK | COLOR_PAIR(1));
+                // printw("\033[1;31m\u25A0\033[0m");
+                // cout << "\033[1;31m\u25A0\033[0m";
             } else if (get_raw(row, col) == GridValue::EMPTY) {
-                cout << " ";
+                printw(" ");
+                // cout << " ";
             } else {
                 throw;
             }
         }
-        cout << endl;
+        printw("\n");
+        // cout << endl;
     }
+    refresh();
+    getch();
+    endwin();
 }
 
 Maze::Maze() : Maze(DEFAULT_SIZE, DEFAULT_SIZE) {}

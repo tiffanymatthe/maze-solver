@@ -23,4 +23,4 @@ The idea for this project was generated using ChatGPT.
 3. Inside the repo, run `g++ main.cpp -o main` to compile.
 4. Run `./main` to run the program.
 
-`g++ main.cpp Maze.cpp -o main`
+`g++ main.cpp Maze.cpp -lncurses -o main`
