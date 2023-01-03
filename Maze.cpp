@@ -2,10 +2,18 @@
 #include <iostream>
 #include <vector>
 #include <stack>
+#include <algorithm>
 #include <map>
 #include <assert.h>
 #include <time.h>
 #include <ncurses.h>
+#include "Path.h"
+
+#ifdef _WIN32
+#include <Windows.h>
+#else
+#include <unistd.h>
+#endif
 
 /**
  *  0 1
@@ -338,6 +346,34 @@ void Maze::display_maze() {
     }
     refresh();
     getch();
+
+    // now print Path object one by one
+
+    vector<pair<int,int>> path_to_print = path.get_path_coordinates();
+
+    pair<int,int> prev{-1,-1};
+
+    pair<int,int> offset{1,0};
+
+    int time_between_path_cells_us = 700;
+
+    for (auto cell : path_to_print) {
+        if (prev.first != -1) {
+            pair<int,int> wall = get_wall_raw_coordinates(prev, cell);
+            move(offset.first + wall.first, offset.second + wall.second);
+            addch(ACS_BLOCK | COLOR_PAIR(1));
+            refresh();
+            usleep(time_between_path_cells_us);
+        }
+        prev = cell;
+
+        move(offset.first + get_raw_index(cell.first), offset.second + get_raw_index(cell.second));
+        addch(ACS_BLOCK | COLOR_PAIR(1));
+        refresh();
+        usleep(time_between_path_cells_us);
+    }
+    refresh();
+    getch();
     endwin();
 }
 
@@ -349,6 +385,7 @@ Maze::Maze(int w, int h) : width(w), height(h) {
     grid = make_unique<GridValue[]>(get_raw_index(width) * get_raw_index(height));
     fill(grid.get(), grid.get() + get_raw_index(width) * get_raw_index(height), GridValue::EMPTY);
     initialize_random_maze();
+    path = Path();
 }
 
 Maze::Side Maze::get_wall_between_cells(pair<int,int> cell1, pair<int,int> cell2) {
@@ -382,7 +419,7 @@ Maze::Side Maze::get_wall_between_cells(pair<int,int> cell1, pair<int,int> cell2
     }
 }
 
-void Maze::set_wall_between_cells(pair<int,int> cell1, pair<int,int> cell2, GridValue value) {
+pair<int,int> Maze::get_wall_raw_coordinates(pair<int,int> cell1, pair<int,int> cell2) {
     pair<int,int> raw1 = make_pair(get_raw_index(cell1.first), get_raw_index(cell1.second));
     pair<int,int> wall_raw = raw1;
     
@@ -405,6 +442,11 @@ void Maze::set_wall_between_cells(pair<int,int> cell1, pair<int,int> cell2, Grid
             throw;
     }
 
+    return wall_raw;
+}
+
+void Maze::set_wall_between_cells(pair<int,int> cell1, pair<int,int> cell2, GridValue value) {
+    pair<int,int> wall_raw = get_wall_raw_coordinates(cell1,cell2);
     set_raw(wall_raw.first, wall_raw.second, value);
 }
 
@@ -459,16 +501,15 @@ void Maze::solveMazeDFS() {
     cout << "Len of history " << history.size() << endl;
     pair<int,int> prev{-1,-1};
 
-    pair<int,int> path = end_location;
+    pair<int,int> curr_path_cell = end_location;
+    vector<pair<int,int>> path_to_add{};
 
     while (prev != start_location) {
-        set_cell(path.first, path.second, GridValue::PATH);
-
-        if (prev.first != -1) {
-            set_wall_between_cells(path, prev, GridValue::PATH);
-        }
-
-        prev = path;
-        path = history[path];
+        prev = curr_path_cell;
+        path_to_add.push_back(curr_path_cell);
+        curr_path_cell = history[curr_path_cell];
     }
+
+    reverse(path_to_add.begin(), path_to_add.end());
+    path = Path(path_to_add);
 }

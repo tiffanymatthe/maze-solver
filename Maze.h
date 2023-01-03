@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <memory>
+#include "Path.h"
 
 class Maze {
     enum class Side { TOP, LEFT, BOTTOM, RIGHT };
@@ -11,7 +12,7 @@ class Maze {
     std::pair<int,int> start_location;
     std::pair<int,int> end_location;
     std::unique_ptr<GridValue[]> grid;
-    
+    Path path;
 
     /*
     * Asserts that row and col inputs are valid for a cell coordinate.
@@ -57,6 +58,9 @@ class Maze {
 
     // get value of wall
     GridValue get_wall_value(int row, int col, Side wall);
+
+    // get coordinates of wall between cells
+    std::pair<int,int> get_wall_raw_coordinates(std::pair<int,int> cell1, std::pair<int,int> cell2);
 
     // returns type wall between the two cells, returns Side wrt to cell1
     Side get_wall_between_cells(std::pair<int,int> cell1, std::pair<int,int> cell2);

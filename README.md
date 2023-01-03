@@ -20,7 +20,5 @@ The idea for this project was generated using ChatGPT.
 
 1. Install gcc with `sudo pacman -Syy gcc`.
 2. Download this repository.
-3. Inside the repo, run `g++ main.cpp -o main` to compile.
+3. Inside the repo, run `g++ main.cpp Maze.cpp Path.cpp -lncurses -o main` to compile.
 4. Run `./main` to run the program.
-
-`g++ main.cpp Maze.cpp -lncurses -o main`
